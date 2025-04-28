@@ -3,7 +3,7 @@ import { Button } from "../components/Button";
 import { Input } from "../components/Input";
 import { BACKEND_URL } from "../config";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate,Link } from "react-router-dom";
 
 export function Signin() {
     const usernameRef = useRef<HTMLInputElement | null>(null);
@@ -29,6 +29,15 @@ export function Signin() {
             <div className="flex justify-center pt-4">
                 <Button onClick={signin} loading={false} variant="primary" text="Signin" fullWidth={true} />
             </div>
+             <div className="flex justify-center pt-4">
+                    <p className="text-sm">
+                        Don't have an account?{" "}
+                        <Link to="/signup" className="text-blue-500 hover:underline">
+                            Sign Up
+                        </Link>
+                    </p>
+                </div>
+            
         </div>
     </div>
 }
