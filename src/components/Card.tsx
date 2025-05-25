@@ -8,6 +8,8 @@ interface CardProps {
   link: string;
   type: "twitter" | "youtube";
   contentId?: string;
+  onDelete?: (contentId: string) => void;
+  isDeleting?: boolean;
 }
 
 
@@ -17,7 +19,8 @@ import { ShareIcon } from "../icons/ShareIcon";
 import { DeleteIcon } from "../icons/DeleteIcon";
 import { BACKEND_URL } from "../config";
 
-const Card: React.FC<CardProps> = ({ title, link, type, contentId }) => {
+const Card: React.FC<CardProps> = ({ title, link, type, contentId, onDelete }) => {
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   // const [embedHtml, setEmbedHtml] = useState<string | null>(null);
   const [embedHtml /* , setEmbedHtml */] = useState("");
@@ -133,62 +136,69 @@ const Card: React.FC<CardProps> = ({ title, link, type, contentId }) => {
   // Determine actual content type based on URL
   const actualType = isTwitterUrl(link) ? "twitter" : type;
 
-  // DELETE handler from your second codebase
-  const handleDelete = async () => {
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!contentId || isDeleting) return;
+    
+    setIsDeleting(true);
+    
     try {
-      console.log("Attempting to delete contentId:", contentId);
-      
-      // Get the token from localStorage or wherever it's stored
-      const token = localStorage.getItem('token'); // Assuming this is just the raw token
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
       
       const response = await fetch(`${BACKEND_URL}/api/v1/content`, {
-        method: "DELETE",
+        method: 'DELETE',
         headers: {
-          "Content-Type": "application/json",
-          ...(token && { "Authorization": token }) // Include Authorization only if token exists
+          'Content-Type': 'application/json',
+          'Authorization': token
         },
-        body: JSON.stringify({ contentId }),
+        body: JSON.stringify({ contentId })
       });
       
-      console.log("Response status:", response.status);
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Response data:", data);
-        console.log("Deleted successfully");
-        // TODO: Update UI here
-      } else {
-        console.error("Delete failed with status:", response.status);
+      if (!response.ok) {
         const errorData = await response.text();
-        console.error("Raw error:", errorData);
+        throw new Error(`Delete failed: ${response.status} ${errorData}`);
+      }
+      
+      // Call the onDelete callback if provided
+      if (onDelete && contentId) {
+        onDelete(contentId);
       }
     } catch (err) {
-      console.error("Delete error", err);
+      console.error('Error deleting content:', err);
+      // You might want to show an error toast/notification here
+    } finally {
+      setIsDeleting(false);
     }
   };
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-100 w-72 h-80 overflow-hidden flex flex-col transition-shadow duration-200 hover:shadow-md">
-      {/* Card Header */}
       <div className="px-4 py-3 flex justify-between items-center border-b border-gray-50">
-    
-
-        {/* LEFT side with delete icon and title */}
         <div className="flex items-center text-md">
           {contentId && (
-            <div
-              className="text-gray-500 pr-2 cursor-pointer"
+            <button
               onClick={handleDelete}
+              disabled={isDeleting}
+              className="text-gray-400 hover:text-red-500 transition-colors duration-200 p-1 rounded-full hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Delete card"
+              title="Delete"
             >
-              {/* Replace with your imported DeleteIcon component */}
-              
-              <DeleteIcon />
-            </div>
+              {isDeleting ? (
+                <svg className="animate-spin h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              ) : (
+                <DeleteIcon className="h-4 w-4" />
+              )}
+            </button>
           )}
           <span className="truncate">{title}</span>
         </div>
 
-        {/* RIGHT side with share icon */}
         <div className="flex items-center">
           <div className="pr-2 text-gray-500">
             <a 

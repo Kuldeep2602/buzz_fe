@@ -12,7 +12,27 @@ import axios from "axios";
 
 export function Dashboard() {
   const [modalOpen, setModalOpen] = useState(false);
-  const { contents, refresh } = useContent();
+  const { contents, refresh, deleteContent } = useContent();
+  const [isDeleting, setIsDeleting] = useState<Record<string, boolean>>({});
+
+  const handleDelete = async (contentId: string) => {
+    if (!contentId) return;
+    
+    try {
+      setIsDeleting(prev => ({ ...prev, [contentId]: true }));
+      await deleteContent(contentId);
+      // The content will be automatically removed from the UI by the useContent hook
+    } catch (error) {
+      console.error('Failed to delete content:', error);
+      // You might want to show an error toast/notification here
+    } finally {
+      setIsDeleting(prev => {
+        const newState = { ...prev };
+        delete newState[contentId];
+        return newState;
+      });
+    }
+  };
 
   useEffect(() => {
     refresh();
@@ -63,12 +83,15 @@ export function Dashboard() {
 
         <div className="flex gap-4 flex-wrap">
           {contents.length > 0 ? (
-            contents.map(({ type, link, title }, index) => (
+            contents.map(({ id, type, link, title, contentId }) => (
               <Card
-                key={index} // Replace with a unique ID if available
-                type={type || "youtube"}
+                key={id}
+                type={(type === 'twitter' ? 'twitter' : 'youtube') as 'twitter' | 'youtube'}
                 link={link || "#"}
                 title={title || "Untitled"}
+                contentId={contentId || id}
+                onDelete={handleDelete}
+                isDeleting={isDeleting[contentId || id] || false}
               />
             ))
           ) : (

@@ -8,10 +8,10 @@ import  {Input } from "./Input";
 import { BACKEND_URL } from "../config";
 import axios from "axios";
 
-enum ContentType {
+export enum ContentType {
   Youtube = "youtube",
   Twitter = "twitter",
-  
+  Note = "note"
 }
 
 interface CreateContentModalProps {
@@ -23,15 +23,21 @@ interface CreateContentModalProps {
 export function CreateContentModal({ open, onClose }: CreateContentModalProps) {
   const titleRef = useRef<HTMLInputElement>(null);
   const linkRef = useRef<HTMLInputElement>(null);
+  const noteRef = useRef<HTMLTextAreaElement>(null);
   const [type, setType] = useState(ContentType.Youtube);
 
   async function addContent() {
     const title = titleRef.current?.value;
-    const link = linkRef.current?.value;
+    const link = type === ContentType.Note ? noteRef.current?.value : linkRef.current?.value;
 
     await axios.post(
       `${BACKEND_URL}/api/v1/content`,
-      { link, title, type },
+      { 
+        link, 
+        title, 
+        type,
+        content: type === ContentType.Note ? noteRef.current?.value : undefined
+      },
       {
         headers: {
           Authorization: localStorage.getItem("token") || "",
@@ -69,17 +75,29 @@ export function CreateContentModal({ open, onClose }: CreateContentModalProps) {
         <h2 className="text-xl font-semibold mb-4 text-center">Add Content</h2>
 
         {/* Input Fields */}
-        <div className="mb-4">
+        <div className="mb-4 space-y-4">
           <Input
             reference={titleRef}
             placeholder="Title"
-            //className="bg-gray-200 text-gray-800 placeholder-gray-500"
+            className="w-full"
           />
-          <Input
-            reference={linkRef}
-            placeholder="Link"
-            //className="bg-gray-200 text-gray-800 placeholder-gray-500 mt-2"
-          />
+          
+          {type !== ContentType.Note ? (
+            <Input
+              reference={linkRef}
+              placeholder={type === ContentType.Youtube ? "YouTube URL" : "Twitter URL"}
+              className="w-full"
+            />
+          ) : (
+            <div className="w-full">
+              <textarea
+                ref={noteRef}
+                placeholder="Write your note here..."
+                rows={6}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+              />
+            </div>
+          )}
         </div>
 
         {/* Type Selection */}
@@ -95,6 +113,11 @@ export function CreateContentModal({ open, onClose }: CreateContentModalProps) {
               text="Twitter"
               variant={type === ContentType.Twitter ? "primary" : "secondary"}
               onClick={() => setType(ContentType.Twitter)}
+            />
+            <Button
+              text="Note"
+              variant={type === ContentType.Note ? "primary" : "secondary"}
+              onClick={() => setType(ContentType.Note)}
             />
           </div>
         </div>

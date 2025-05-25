@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Button } from "../components/Button";
 import { Input } from "../components/Input";
 import { BACKEND_URL } from "../config";
@@ -9,35 +9,64 @@ export function Signin() {
     const usernameRef = useRef<HTMLInputElement | null>(null);
     const passwordRef = useRef<HTMLInputElement | null>(null);
     const navigate = useNavigate();
+    const [error, setError] = useState<string | null>(null);
 
     async function signin() {
+        setError(null);
         const username = usernameRef.current?.value;
-        console.log(usernameRef.current)
         const password = passwordRef.current?.value;
-        const response = await axios.post(BACKEND_URL + "/api/v1/signin", {
-            username,
-            password
-        })
-        const jwt = response.data.token;
-        localStorage.setItem("token", jwt);
-        navigate("/dashboard")
+        
+        try {
+            const response = await axios.post(BACKEND_URL + "/api/v1/signin", {
+                username,
+                password
+            });
+            const jwt = response.data.token;
+            localStorage.setItem("token", jwt);
+            navigate("/dashboard");
+        } catch (err: any) {
+            if (err.response && err.response.data && err.response.data.message) {
+                setError(err.response.data.message);
+            } else {
+                setError("Sign in failed. Please check your credentials and try again.");
+            }
+        }
     }
-    return <div className="h-screen w-screen bg-gray-200 flex justify-center items-center">
-        <div className="bg-white rounded-xl border min-w-48 p-8">
-            <Input reference={usernameRef} placeholder="Username" />
-            <Input reference={passwordRef} placeholder="Password" />
-            <div className="flex justify-center pt-4">
-                <Button onClick={signin} loading={false} variant="primary" text="Signin" fullWidth={true} />
-            </div>
-             <div className="flex justify-center pt-4">
-                    <p className="text-sm">
-                        Don't have an account?{" "}
-                        <Link to="/signup" className="text-blue-500 hover:underline">
-                            Sign Up
-                        </Link>
-                    </p>
+    return (
+        <div className="min-h-screen w-full bg-gray-50 flex justify-center items-center p-4">
+            <div className="bg-white rounded-lg shadow-md w-full max-w-md p-8 border border-gray-100">
+                <div className="text-center mb-8">
+                    <h2 className="text-2xl font-bold text-gray-800">Welcome back</h2>
+                    <p className="text-gray-500 mt-2">Sign in to your account</p>
                 </div>
-            
+                <Input reference={usernameRef} placeholder="Username" />
+                <Input reference={passwordRef} placeholder="Password" type="password" />
+                
+                {error && (
+                    <div className="text-red-600 text-center text-sm mt-2 mb-2">
+                        {error}
+                    </div>
+                )}
+
+                <div className="flex flex-col gap-4 pt-4">
+                    <Button 
+                        onClick={signin} 
+                        loading={false} 
+                        variant="primary" 
+                        text="Sign In" 
+                        fullWidth={true} 
+                    />
+                    <div className="text-center text-sm text-gray-600">
+                        Don't have an account?{' '}
+                        <Link 
+                            to="/signup" 
+                            className="text-purple-600 hover:underline font-medium"
+                        >
+                            Sign up
+                        </Link>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
+    )
 }
